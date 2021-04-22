@@ -35,6 +35,7 @@ comparison = Base.classes.comparison
 predictions = Base.classes.predictions
 stock = Base.classes.stock
 prophet = Base.classes.prophet
+store = Base.classes.store
 # stockforecast = Base.classes.stockforecast
 
 session = Session(engine)
@@ -213,6 +214,59 @@ def stock_market():
 def stock_forecast():
     return render_template("stock_forecast.html")   
 
+@app.route("/api/prophet")
+def prophet_route():
+    data = session.query(prophet.ID,
+        prophet.ds, 
+        prophet.trend,
+        prophet.yhat_lower,
+        prophet.yhat_upper,
+        prophet.trend_lower,
+        prophet.trend_upper,
+        prophet.additive_terms,
+        prophet.additive_terms_lower,
+        prophet.additive_terms_upper,
+        prophet.daily,
+        prophet.daily_lower,
+        prophet.daily_upper,
+        prophet.weekly,
+        prophet.weekly_lower,
+        prophet.weekly_upper,
+        prophet.yearly,
+        prophet.yearly_lower,
+        prophet.yearly_upper,
+        prophet.yhat,
+        prophet.y).all()
+ 
+    prophet_df = []
+    for row in data:
+        output={
+            'ID':row[0],
+            'ds':row[1],
+            'trend':row[2],
+            'yhat_lower':row[3],
+            'yhat_upper':row[4],
+            'trend_lower':row[5],
+            'trend_upper':row[6],
+            'additive_terms':row[7],
+            'additive_terms_lower':row[8],
+            'additive_terms_upper':row[9],
+            'daily':row[10],
+            'daily_lower':row[11],
+            'daily_upper':row[12],
+            'weekly':row[13],
+            'weekly_lower':row[14],
+            'weekly_upper':row[15],
+            'yearly':row[16],
+            'yearly_lower':row[17],
+            'yearly_upper':row[18],
+            'yhat':row[19],
+            'y':row[20]
+        }
+        prophet_df.append(output)
+
+    return jsonify(prophet_df)
+    
 #****************************************MARKETSHARE****************************************
 @app.route("/api/marketshare")
 def share_api():
@@ -240,6 +294,17 @@ def share():
 def store_location():
     return render_template("store.html") 
 
+@app.route("/api/store")
+def store_route():
+    locationData = session.query(
+        store.address1, store.city, store.latitude, store.longitude).all()
+    session.close()
+    location = []
+    for row in locationData:
+        locationDict = {
+            'Address': row[0], 'City': row[1], 'Latitude': row[2], 'Longitude': row[3]}
+        location.append(locationDict)
+    return jsonify(location)
 
 
 # **************************************** Grocery List Recommendation Service Route ****************************************
@@ -314,19 +379,19 @@ def feature_2(user_email, grocery_list):
             k=k+1
 #return feature_list
 
-@app.route("/relogin")
-def relogin_page():
-    grocery_list.pop(3)
-    grocery_list.pop(2)
-    grocery_list.pop(1)
-    feature_list.pop(3)
-    feature_list.pop(2)
-    feature_list.pop(1)
-    return render_template("login.html")
-
 # Main route to render index.html
 @app.route("/login")
 def login_page():
+    return render_template("login.html")
+
+@app.route("/relogin")
+def relogin_page():
+    grocery_list.pop(2)
+    grocery_list.pop(1)
+    grocery_list.pop(0)
+    feature_list.pop(2)
+    feature_list.pop(1)
+    feature_list.pop(0)
     return render_template("login.html")
 
 @app.route("/recommendations", methods = ['POST'])
@@ -336,7 +401,9 @@ def grocery():
     # Call function
     try:
         recommendations(user_email)
+        print(grocery_list)
         feature_2(user_email, grocery_list)
+        print(feature_list)
         # Render Landing Page
         return render_template("landing.html", grocery_list = grocery_list, feature_list = feature_list)
     except:
@@ -434,7 +501,7 @@ def stock_metric():
 
 @app.route("/contact")
 def contact_page():
-    return render("contact.html")
+    return render_template("contact.html")
 
 if __name__ == "__main__":
     app.run()
